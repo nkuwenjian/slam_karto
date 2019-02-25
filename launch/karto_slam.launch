@@ -4,10 +4,18 @@ Assumes an 'odom_combined' frame, that provides reasonably accurate odometry
 -->
 
 <launch>
+  <param name="/use_sim_time" value="true" />
+
+  <node pkg="tf" type="static_transform_publisher" name="map_publisher" args="0.0 0 0 0 0 0 base_link laser 100" />
+
   <node pkg="slam_karto" type="slam_karto" name="slam_karto" output="screen">
-    <remap from="scan" to="base_scan"/>
-    <param name="odom_frame" value="odom_combined"/>
+    <remap from="scan" to="laser"/>
+    <param name="odom_frame" value="odom"/>
     <param name="map_update_interval" value="25"/>
     <param name="resolution" value="0.025"/>
   </node>
+  <node name="rviz" pkg="rviz" type="rviz" required="true"
+      args="" />
+  <!--<node name="playbag" pkg="rosbag" type="play"
+      args="clock -r 5 $(arg bag_filename)" />-->
 </launch>
