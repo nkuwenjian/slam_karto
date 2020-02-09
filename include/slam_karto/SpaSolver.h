@@ -22,7 +22,7 @@
 
 #ifndef EIGEN_USE_NEW_STDVECTOR
 #define EIGEN_USE_NEW_STDVECTOR
-#endif // EIGEN_USE_NEW_STDVECTOR
+#endif  // EIGEN_USE_NEW_STDVECTOR
 
 #define EIGEN_DEFAULT_IO_FORMAT Eigen::IOFormat(10)
 
@@ -38,24 +38,27 @@ class SpaSolver : public karto::ScanSolver
 public:
   SpaSolver();
   virtual ~SpaSolver();
-  
+
 public:
   virtual void Clear();
   virtual void Compute();
   virtual const karto::ScanSolver::IdPoseVector& GetCorrections() const;
-  
+
   virtual void AddNode(karto::Vertex<karto::LocalizedRangeScan>* pVertex);
   virtual void AddConstraint(karto::Edge<karto::LocalizedRangeScan>* pEdge);
-  
+
   // Get the underlying graph from SBA
   // return the graph of constraints
   /// x,y -> x',y'   4 floats per connection
-  void getGraph(std::vector<float> &g) { m_Spa.getGraph(g); }
-  
+  void getGraph(std::vector<float>& g)
+  {
+    m_Spa.getGraph(g);
+  }
+
 private:
   karto::ScanSolver::IdPoseVector corrections;
-  
+
   SysSPA2d m_Spa;
 };
 
-#endif // KARTO_SPASOLVER_H
+#endif  // KARTO_SPASOLVER_H

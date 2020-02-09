@@ -41,9 +41,9 @@ const karto::ScanSolver::IdPoseVector& SpaSolver::GetCorrections() const
 void SpaSolver::Compute()
 {
   corrections.clear();
-  
+
   typedef std::vector<Node2d, Eigen::aligned_allocator<Node2d> > NodeVector;
-  
+
   ROS_INFO("Calling doSPA for loop closure");
   m_Spa.doSPA(40);
   ROS_INFO("Finished doSPA for loop closure");
@@ -67,18 +67,18 @@ void SpaSolver::AddConstraint(karto::Edge<karto::LocalizedRangeScan>* pEdge)
   karto::LocalizedRangeScan* pSource = pEdge->GetSource()->GetObject();
   karto::LocalizedRangeScan* pTarget = pEdge->GetTarget()->GetObject();
   karto::LinkInfo* pLinkInfo = (karto::LinkInfo*)(pEdge->GetLabel());
-  
+
   karto::Pose2 diff = pLinkInfo->GetPoseDifference();
   Eigen::Vector3d mean(diff.GetX(), diff.GetY(), diff.GetHeading());
-  
+
   karto::Matrix3 precisionMatrix = pLinkInfo->GetCovariance().Inverse();
-  Eigen::Matrix<double,3,3> m;
-  m(0,0) = precisionMatrix(0,0);
-  m(0,1) = m(1,0) = precisionMatrix(0,1);
-  m(0,2) = m(2,0) = precisionMatrix(0,2);
-  m(1,1) = precisionMatrix(1,1);
-  m(1,2) = m(2,1) = precisionMatrix(1,2);
-  m(2,2) = precisionMatrix(2,2);
-  
+  Eigen::Matrix<double, 3, 3> m;
+  m(0, 0) = precisionMatrix(0, 0);
+  m(0, 1) = m(1, 0) = precisionMatrix(0, 1);
+  m(0, 2) = m(2, 0) = precisionMatrix(0, 2);
+  m(1, 1) = precisionMatrix(1, 1);
+  m(1, 2) = m(2, 1) = precisionMatrix(1, 2);
+  m(2, 2) = precisionMatrix(2, 2);
+
   m_Spa.addConstraint(pSource->GetUniqueId(), pTarget->GetUniqueId(), mean, m);
 }
