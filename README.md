@@ -2,19 +2,25 @@
 A ROS package for 2D laser SLAM that uses open-karto package for the front end and SPA solver for backend.
 
 ## How to use on Ubuntu?
-    1. This package has been tested well on ROS Kinetic Kame.
+    1. This package has been tested well in Ubuntu 16.04 with ROS Kinetic.
     
-    2. Install open-karto, Eigen3, and CXSparse 
-        $ sudo apt-get install ros-kinetic-open-karto libeigen3-dev libsuitesparse-dev
+    2. Install Eigen3 and CXSparse 
+        $ sudo apt-get install libeigen3-dev libsuitesparse-dev
 
-    3. Clone and catkin_make
+    3. Clone and build open-karto package
+        $ cd ~/catkin_ws/src/
+        $ git clone https://github.com/ros-perception/open_karto.git
+        $ cd ..
+        $ catkin_make
+
+    4. Clone and build this package
         $ cd ~/catkin_ws/src/
         $ git clone https://github.com/nkuwenjian/slam_karto.git
         $ cd ..
         $ catkin_make
-        $ source devel/setup.bash
 
-    4. Run offline rosbag
+    5. Run offline rosbag
+        $ source ~/catkin_ws/devel/setup.bash
         $ roslaunch slam_karto karto_slam.launch
         $ rosbag play <rosbagfile> --clock
 
