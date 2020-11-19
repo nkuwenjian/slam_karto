@@ -1,5 +1,5 @@
 # ROS Wrapper for Karto SLAM with SPA solver
-A ROS package for 2D laser SLAM that uses open-karto package for the front end and SPA solver for backend.
+A ROS package for 2-D laser SLAM that uses open-karto package for the front-end and SPA solver for the back-end.
 
 ## How to use on Ubuntu?
     1. This package has been tested well in Ubuntu 16.04 with ROS Kinetic.

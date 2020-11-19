@@ -1,9 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(slam_karto)
 
-## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11)
-
 # Add new CMake Modules
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 
