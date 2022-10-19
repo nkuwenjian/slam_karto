@@ -35,7 +35,7 @@
 //
 // Interface to CSparse
 //
-#include <slam_karto/csparse.h>
+#include "csparse.h"
 
 #include <stdio.h>
 
@@ -66,7 +66,7 @@ using namespace std;
 //    each entry is the index in row_ptr of where the column starts.
 //  row_ind has NNZ entries, each one a row index for an element.
 //  vals    has NNZ entries corresponding to the row_ptr entries
-//  
+//
 
 
 CSparse2d::CSparse2d()
@@ -101,14 +101,14 @@ void CSparse2d::setupBlockStructure(int n, bool eraseit)
   {
     for (int i=0; i<(int)cols.size(); i++)
     {
-      map<int,Matrix<double,3,3>, less<int>, 
+      map<int,Matrix<double,3,3>, less<int>,
       aligned_allocator< Matrix <double,3,3> > > &col = cols[i];
       col.clear();
     }
   }
   asize = n;
   csize = 3*n;
-  
+
   if (eraseit)
   {
     // zero out entries
@@ -119,11 +119,11 @@ void CSparse2d::setupBlockStructure(int n, bool eraseit)
     }
     for (int i=0; i<(int)cols.size(); i++)
     {
-      map<int,Matrix<double,3,3>, less<int>, 
+      map<int,Matrix<double,3,3>, less<int>,
       aligned_allocator<Matrix<double,3,3> > > &col = cols[i];
       if (col.size() > 0)
       {
-        map<int,Matrix<double,3,3>, less<int>, 
+        map<int,Matrix<double,3,3>, less<int>,
         aligned_allocator<Matrix<double,3,3> > >::iterator it;
         for (it = col.begin(); it != col.end(); it++)
         {
@@ -145,11 +145,11 @@ void CSparse2d::setupBlockStructure(int n, bool eraseit)
 // add an off-diagonal block
 void CSparse2d::addOffdiagBlock(Matrix<double,3,3> &m, int ii, int jj)
 {
-  // get column 
-  map<int,Matrix<double,3,3>, less<int>, 
+  // get column
+  map<int,Matrix<double,3,3>, less<int>,
   aligned_allocator<Matrix<double,3,3> > > &col = cols[jj];
   // find current matrix
-  map<int,Matrix<double,3,3>, less<int>, 
+  map<int,Matrix<double,3,3>, less<int>,
   aligned_allocator<Matrix<double,3,3> > >::iterator it;
   it = col.find(ii);
   if (it == col.end())        // didn't find it
@@ -180,17 +180,17 @@ void CSparse2d::setupCSstructure(double diaginc, bool init)
     Common.print = 0;
   }
 #endif
-  
+
   // reserve space and set things up
   if (init || useCholmod)
   {
     if (A) cs_spfree(A);    // free any previous structure
-    
+
     // count entries for cs allocation
     nnz = 6*asize;         // diagonal entries, just upper triangle
     for (int i=0; i<(int)cols.size(); i++)
     {
-      map<int,Matrix<double,3,3>, less<int>, 
+      map<int,Matrix<double,3,3>, less<int>,
       aligned_allocator<Matrix<double,3,3> > > &col = cols[i];
       nnz += 9 * col.size(); // 3x3 matrix
     }
@@ -198,7 +198,7 @@ void CSparse2d::setupCSstructure(double diaginc, bool init)
     if (useCholmod)
     {
       //            cholmod_start(&Common); // this is finished in doChol()
-      //            if (chA) 
+      //            if (chA)
       //            cholmod_free_sparse(&chA, &Common);
       chA = cholmod_allocate_sparse(csize,csize,nnz,true,true,1,CHOLMOD_REAL,&Common);
     }
@@ -207,7 +207,7 @@ void CSparse2d::setupCSstructure(double diaginc, bool init)
     {
       A = cs_spalloc(csize,csize,nnz,1,0); // allocate sparse matrix
     }
-    
+
     // now figure out the column pointers
     int colp = 0;           // index of where the column starts in Ai
     int *Ap, *Ai;
@@ -223,26 +223,26 @@ void CSparse2d::setupCSstructure(double diaginc, bool init)
       Ap = A->p;          // column pointer
       Ai = A->i;          // row indices
     }
-    
+
     for (int i=0; i<(int)cols.size(); i++)
     {
       // column i entries
-      map<int,Matrix<double,3,3>, less<int>, 
+      map<int,Matrix<double,3,3>, less<int>,
       aligned_allocator<Matrix<double,3,3> > > &col = cols[i];
-      
+
       // do this for 3 columns
       for (int k=0; k<3; k++)
       {
         *Ap++ = colp;
         int row;
-        
+
         // iterate over the map
         if (col.size() > 0)
         {
           // map iterator
-          map<int,Matrix<double,3,3>, less<int>, 
+          map<int,Matrix<double,3,3>, less<int>,
           aligned_allocator<Matrix<double,3,3> > >::iterator it;
-          
+
           // iterate over block column entries
           for (it = col.begin(); it != col.end(); it++)
           {
@@ -251,16 +251,16 @@ void CSparse2d::setupCSstructure(double diaginc, bool init)
               Ai[colp++] = row++;
           }
         }
-        
+
         // add in diagonal entries
         row = 3*i;
         for (int kk=0; kk<k+1; kk++)
           Ai[colp++] = row++;
       }
-    }        
+    }
     *Ap = nnz;       // last entry
   }
-  
+
   // now put the entries in place
   int colp = 0;           // index of where the column starts in Ai
   double *Ax;
@@ -270,13 +270,13 @@ void CSparse2d::setupCSstructure(double diaginc, bool init)
     else
 #endif
       Ax = A->x;               // values
-      
+
       for (int i=0; i<(int)cols.size(); i++)
       {
         // column i entries
-        map<int,Matrix<double,3,3>, less<int>, 
+        map<int,Matrix<double,3,3>, less<int>,
         aligned_allocator<Matrix<double,3,3> > > &col = cols[i];
-        
+
         // do this for 3 columns
         for (int k=0; k<3; k++)
         {
@@ -284,9 +284,9 @@ void CSparse2d::setupCSstructure(double diaginc, bool init)
           if (col.size() > 0)
           {
             // map iterator
-            map<int,Matrix<double,3,3>, less<int>, 
+            map<int,Matrix<double,3,3>, less<int>,
             aligned_allocator<Matrix<double,3,3> > >::iterator it;
-            
+
             // iterate over block column entries
             for (it = col.begin(); it != col.end(); it++)
             {
@@ -294,16 +294,16 @@ void CSparse2d::setupCSstructure(double diaginc, bool init)
               for (int j=0; j<3; j++)
                 Ax[colp++] = m(j,k);
             }
-          } 
-          
+          }
+
           // add in diagonal entries
           Matrix<double,3,3> &m = diag[i]; // diagonal block
           for (int kk=0; kk<k+1; kk++)
             Ax[colp++] = m(kk,k);
           Ax[colp-1] *= diaginc; // increment diagonal for LM
         }
-      }      
-      
+      }
+
       // make symmetric from upper diagonal
       // this could be more efficient if AT were eliminated and AF were fixed
       // oops - chol_sol only needs upper diag
@@ -315,11 +315,11 @@ void CSparse2d::uncompress(MatrixXd &m)
 {
   if (!A) return;
   m.setZero(csize,csize);
-  
+
   int *Ap = A->p;             // column pointer
   int *Ai = A->i;             // row indices
   double *Ax = A->x;          // values;
-  
+
   for (int i=0; i<csize; i++)
   {
     int rbeg = Ap[i];
@@ -344,7 +344,7 @@ bool CSparse2d::doChol()
     one [1] = 0 ;
     minusone [0] = -1 ;
     minusone [1] = 0 ;
-    
+
     //        cholmod_start (&Common) ;    // start it up ???
     cholmod_print_sparse (chA, (char *)"A", &Common) ; // print simple stats
     b.nrow = csize;
@@ -355,13 +355,13 @@ bool CSparse2d::doChol()
     b.dtype = CHOLMOD_DOUBLE;
     b.x = B.data();
     //cout << "CHOLMOD analyze..." << flush;
-    L = cholmod_analyze (chA, &Common) ; // analyze 
+    L = cholmod_analyze (chA, &Common) ; // analyze
     //cout << "factorize..." << flush;
-    cholmod_factorize (chA, L, &Common) ; // factorize 
+    cholmod_factorize (chA, L, &Common) ; // factorize
     //cout << "solve..." << flush;
     x = cholmod_solve (CHOLMOD_A, L, &b, &Common) ; // solve Ax=b
     //        cholmod_print_factor (L, (char *)"L", &Common) ;
-    
+
     //cout << "refine" << endl;
     // one step of iterative refinement, cheap
     /* Ax=b was factorized and solved, R = B-A*X */
@@ -378,22 +378,22 @@ bool CSparse2d::doChol()
     }
     cholmod_free_dense (&R2, &Common) ;
     cholmod_free_dense (&R, &Common) ;
-    
+
     bb = B.data();
     for (int i=0; i<csize; i++) // transfer answer
       *bb++ = *Xx++;
-    cholmod_free_factor (&L, &Common) ; // free matrices 
+    cholmod_free_factor (&L, &Common) ; // free matrices
     cholmod_free_dense (&x, &Common) ;
     cholmod_free_sparse(&chA, &Common);
     cholmod_finish (&Common) ;   // finish it ???
-    
+
     return true;
   }
   else
 #endif
   {
-    
-    // using order 0 here (natural order); 
+
+    // using order 0 here (natural order);
     // may be better to use "1" for large problems (AMD)
     int order = 0;
     if (csize > 100) order = 1;
@@ -403,12 +403,12 @@ bool CSparse2d::doChol()
 }
 
 
-// 
+//
 // block jacobian PCG
 // max iterations <iter>, ending toleranace <tol>
 //
 /*
- *  int 
+ *  int
  *  CSparse2d::doBPCG(int iters, double tol, int sba_iter)
  *  {
  *    int n = B.rows();
@@ -430,34 +430,34 @@ int CSparse2d::doPCG(int iters)
 {
   // first convert sparse matrix to SparseLib++ format
   // do we need just upper triangular here???
-  
+
   // add in lower triangular part
   cs *AT;
   AT = cs_transpose(A,1);
-  cs_fkeep (AT, &dropdiag, NULL); // drop diagonal entries from AT 
+  cs_fkeep (AT, &dropdiag, NULL); // drop diagonal entries from AT
   if (AF) cs_spfree(AF);      // free any previous structure
   AF = cs_add (A, AT, 1, 1);  // AF = A+AT
   cs_spfree (AT);
-  
+
   // convert to SparseLib objects
-  CompCol_Mat_double Ap(csize, csize, AF->nzmax, AF->x, AF->i, AF->p); 
+  CompCol_Mat_double Ap(csize, csize, AF->nzmax, AF->x, AF->i, AF->p);
   VECTOR_double b(B.data(),csize);   // Create rhs
   VECTOR_double x(csize, 0.0); // solution vectors
-  
+
   // perform PCG
   int res;
   double tol = 1e-6;
   ICPreconditioner_double D(Ap); // Create diagonal preconditioner
   res = CG(Ap,x,b,D,iters,tol); // Solve system
-  
+
   for (int i=0; i<csize; i++)
     B[i] = x[i];
-  
+
   //    cout << "CG flag = " << res << endl;
   //    cout << "iterations performed: " << iters << endl;
   //    cout << "tolerance achieved  : " << tol << endl;
   //    cout << x << endl;
-  
+
   return res;
 }
 #endif

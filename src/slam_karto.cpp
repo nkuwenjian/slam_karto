@@ -38,7 +38,7 @@
 
 #include "open_karto/Mapper.h"
 
-#include "slam_karto/SpaSolver.h"
+#include "slam_karto/spa_solver.h"
 
 #include <boost/thread.hpp>
 

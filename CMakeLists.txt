@@ -22,13 +22,14 @@ find_package(CSparse REQUIRED)
 catkin_package()
 
 include_directories(include
+  third_party
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
   ${CSPARSE_INCLUDE_DIR}
 )
 
-add_library(spa_solver src/SpaSolver.cpp src/csparse.cpp src/spa2d.cpp)
-target_link_libraries(spa_solver 
+add_library(spa_solver src/spa_solver.cpp third_party/spa/csparse.cpp third_party/spa/spa2d.cpp)
+target_link_libraries(spa_solver
   ${catkin_LIBRARIES}
   ${CSPARSE_LIBRARY}
 )

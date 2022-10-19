@@ -35,7 +35,7 @@
 //
 // Sparse Pose Adjustment classes and functions, 2D version
 //
-#include <slam_karto/spa2d.h>
+#include "spa2d.h"
 
 #include <stdio.h>
 #include <Eigen/Cholesky>
@@ -62,7 +62,7 @@ static long long utime()
 // R = [[c -s][s c]]
 // [R' | R't]
 void Node2d::setTransform()
-{ 
+{
   w2n(0,0) = w2n(1,1) = cos(arot);
   w2n(0,1) = sin(arot);
   w2n(1,0) = -w2n(0,1);
@@ -73,7 +73,7 @@ void Node2d::setTransform()
 
 //
 // sets angle derivatives dR'/dth
-// 
+//
 void Node2d::setDr()
 {
   dRdx(0,0) = dRdx(1,1) = w2n(1,0); // -sin(th)
@@ -91,55 +91,55 @@ void Con2dP2::setJacobians(std::vector<Node2d,Eigen::aligned_allocator<Node2d> >
   Matrix<double,3,1> &tr = nr.trans;
   Node2d &n1 = nodes[nd1];
   Matrix<double,3,1> &t1 = n1.trans;
-  
+
   // first get the second frame in first frame coords
   Eigen::Matrix<double,2,1> pc = nr.w2n * t1;
-  
+
   // Jacobians wrt first frame parameters
-  
+
   // translational part of 0p1 wrt translational vars of p0
   // this is just -R0'  [from 0t1 = R0'(t1 - t0)]
   J0.block<2,2>(0,0) = -nr.w2n.block<2,2>(0,0);
-  
-  
+
+
   // translational part of 0p1 wrt rotational vars of p0
   // dR'/dq * [pw - t]
   Eigen::Matrix<double,2,1> pwt;
   pwt = (t1-tr).head(2);   // transform translations
-  
+
   // dx
   Eigen::Matrix<double,2,1> dp = nr.dRdx * pwt; // dR'/dq * [pw - t]
   J0.block<2,1>(0,2) = dp;
-  
+
   // rotational part of 0p1 wrt translation vars of p0 => zero
   J0.block<1,2>(2,0).setZero();
-  
+
   // rotational part of 0p1 wrt rotational vars of p0
   // from 0q1 = (q1-q0)
   J0(2,2) = -1.0;
   J0t = J0.transpose();
-  
+
   //  cout << endl << "J0 " << ndr << endl << J0 << endl;
-  
+
   // Jacobians wrt second frame parameters
   // translational part of 0p1 wrt translational vars of p1
   // this is just R0'  [from 0t1 = R0'(t1 - t0)]
   J1.block<2,2>(0,0) = nr.w2n.block<2,2>(0,0);
-  
+
   // translational part of 0p1 wrt rotational vars of p1: zero
   J1.block<2,1>(0,2).setZero();
-  
+
   // rotational part of 0p1 wrt translation vars of p0 => zero
   J1.block<1,2>(2,0).setZero();
-  
-  
+
+
   // rotational part of 0p1 wrt rotational vars of p0
   // from 0q1 = (q1-q0)
   J1(2,2) = 1.0;
   J1t = J1.transpose();
-  
+
   //  cout << endl << "J1 " << nd1 << endl << J1 << endl;
-  
+
 };
 
 
@@ -147,22 +147,22 @@ void Con2dP2::setJacobians(std::vector<Node2d,Eigen::aligned_allocator<Node2d> >
 // error function
 // NOTE: this is h(x) - z, not z - h(x)
 inline double Con2dP2::calcErr(const Node2d &nd0, const Node2d &nd1)
-{ 
+{
   err.block<2,1>(0,0) = nd0.w2n * nd1.trans - tmean;
   double aerr = (nd1.arot - nd0.arot) - amean;
   if (aerr > M_PI) aerr -= 2.0*M_PI;
   if (aerr < -M_PI) aerr += 2.0*M_PI;
   err(2) = aerr;
-  
+
   //      cout << err.transpose() << endl;
-  
+
   return err.dot(prec * err);
 }
 
 
 // error function for distance cost
 double Con2dP2::calcErrDist(const Node2d &nd0, const Node2d &nd1)
-{ 
+{
   Vector2d derr = nd0.w2n * nd1.trans - tmean;
   return derr.dot(derr);
 }
@@ -174,7 +174,7 @@ double Con2dP2::calcErrDist(const Node2d &nd0, const Node2d &nd1)
 double SysSPA2d::calcCost(bool tcost)
 {
   double cost = 0.0;
-  
+
   // do distance offset
   if (tcost)
   {
@@ -185,9 +185,9 @@ double SysSPA2d::calcCost(bool tcost)
       cost += err;
     }
   }
-  
+
   // full cost
-  else 
+  else
   {
     for(size_t i=0; i<p2cons.size(); i++)
     {
@@ -197,23 +197,23 @@ double SysSPA2d::calcCost(bool tcost)
     }
     errcost = cost;
   }
-  
+
   return cost;
 }
 
 
 // add a node at a pose
 // <pos> is x,y,th, with th in radians
-// returns node position 
+// returns node position
 int SysSPA2d::addNode(const Vector3d &pos, int id)
 {
   Node2d nd;
   nd.nodeId = id;
-  
+
   nd.arot = pos(2);
   nd.trans.head(2) = pos.head(2);
   nd.trans(2) = 1.0;
-  
+
   // add in to system
   nd.setTransform();          // set up world2node transform
   nd.setDr();
@@ -228,7 +228,7 @@ int SysSPA2d::addNode(const Vector3d &pos, int id)
 // <prec> is a 3x3 precision matrix (inverse covariance
 // returns true if nodes are found
 // TODO: make node lookup more efficient
-bool SysSPA2d::addConstraint(int ndi0, int ndi1, const Vector3d &mean, 
+bool SysSPA2d::addConstraint(int ndi0, int ndi1, const Vector3d &mean,
                              const Matrix3d &prec)
 {
   int ni0 = -1, ni1 = -1;
@@ -240,11 +240,11 @@ bool SysSPA2d::addConstraint(int ndi0, int ndi1, const Vector3d &mean,
       ni1 = i;
   }
   if (ni0 < 0 || ni1 < 0) return false;
-  
+
   Con2dP2 con;
   con.ndr = ni0;
   con.nd1 = ni1;
-  
+
   con.tmean = mean.head(2);
   con.amean = mean(2);
   con.prec = prec;
@@ -265,20 +265,20 @@ void SysSPA2d::setupSys(double sLambda)
   B.setZero(3*nFree);
   VectorXi dcnt(nFree);
   dcnt.setZero(nFree);
-  
+
   // lambda augmentation
   double lam = 1.0 + sLambda;
-  
+
   // loop over P2 constraints
   for(size_t pi=0; pi<p2cons.size(); pi++)
   {
     Con2dP2 &con = p2cons[pi];
     con.setJacobians(nodes);
-    
+
     // add in 4 blocks of A
     int i0 = 3*(con.ndr-nFixed); // will be negative if fixed
     int i1 = 3*(con.nd1-nFixed); // will be negative if fixed
-    
+
     if (i0>=0)
     {
       A.block<3,3>(i0,i0) += con.J0t * con.prec * con.J0;
@@ -295,30 +295,30 @@ void SysSPA2d::setupSys(double sLambda)
         A.block<3,3>(i1,i0) += con.J1t * con.prec * con.J0;
       }
     }
-    
+
     // add in 2 blocks of B
     if (i0>=0)
       B.block<3,1>(i0,0) -= con.J0t * con.prec * con.err;
     if (i1>=0)
       B.block<3,1>(i1,0) -= con.J1t * con.prec * con.err;
   } // finish P2 constraints
-  
-  
+
+
   // augment diagonal
   A.diagonal() *= lam;
-  
+
   // check the matrix and vector
   for (int i=0; i<3*nFree; i++)
     for (int j=0; j<3*nFree; j++)
       if (isnan(A(i,j)) ) { printf("[SetupSys] NaN in A\n"); *(int *)0x0 = 0; }
-      
+
       for (int j=0; j<3*nFree; j++)
         if (isnan(B[j]) ) { printf("[SetupSys] NaN in B\n"); *(int *)0x0 = 0; }
-        
+
         int ndc = 0;
       for (int i=0; i<nFree; i++)
         if (dcnt(i) == 0) ndc++;
-        
+
         if (ndc > 0)
           cout << "[SetupSys] " << ndc << " disconnected nodes" << endl;
 }
@@ -332,35 +332,35 @@ void SysSPA2d::setupSparseSys(double sLambda, int iter, int sparseType)
   // assumes scales vars are all free
   int nFree = nodes.size() - nFixed;
   if(nFree < 0) nFree = 0;
-  
+
   long long t0, t1, t2, t3;
   t0 = utime();
-  
+
   if (iter == 0)
   {
     csp.setupBlockStructure(nFree); // initialize CSparse structures
   }
   //    else
   //      csp.setupBlockStructure(0); // zero out CSparse structures
-  
+
   t1 = utime();
-  
+
   VectorXi dcnt(nFree);
   dcnt.setZero(nFree);
-  
+
   // lambda augmentation
   double lam = 1.0 + sLambda;
-  
+
   // loop over P2 constraints
   for(size_t pi=0; pi<p2cons.size(); pi++)
   {
     Con2dP2 &con = p2cons[pi];
     con.setJacobians(nodes);
-    
+
     // add in 4 blocks of A; actually just need upper triangular
     int i0 = con.ndr-nFixed; // will be negative if fixed
     int i1 = con.nd1-nFixed; // will be negative if fixed
-    
+
     if (i0>=0)
     {
       Matrix<double,3,3> m = con.J0t*con.prec*con.J0;
@@ -387,36 +387,36 @@ void SysSPA2d::setupSparseSys(double sLambda, int iter, int sparseType)
         }
       }
     }
-    
+
     // add in 2 blocks of B
     if (i0>=0)
     {
       csp.B.block<3,1>(i0*3,0) -= con.J0t * con.prec * con.err;
-      
+
     }
     if (i1>=0)
     {
       csp.B.block<3,1>(i1*3,0) -= con.J1t * con.prec * con.err;
     }
-    
+
   } // finish P2 constraints
   t2 = utime();
-  
+
   // set up sparse matrix structure from blocks
   if (sparseType == SBA_BLOCK_JACOBIAN_PCG)
     csp.incDiagBlocks(lam);   // increment diagonal block
     else
-      csp.setupCSstructure(lam,iter==0); 
+      csp.setupCSstructure(lam,iter==0);
     t3 = utime();
-  
+
   if (verbose)
     printf("\n[SetupSparseSys] Block: %0.1f   Cons: %0.1f  CS: %0.1f\n",
            (t1-t0)*.001, (t2-t1)*.001, (t3-t2)*.001);
-    
+
     int ndc = 0;
   for (int i=0; i<nFree; i++)
     if (dcnt(i) == 0) ndc++;
-    
+
     if (ndc > 0)
       cout << "[SetupSparseSys] " << ndc << " disconnected nodes" << endl;
 }
@@ -425,10 +425,10 @@ void SysSPA2d::setupSparseSys(double sLambda, int iter, int sparseType)
 /// Run the LM algorithm that computes a nonlinear SPA estimate.
 /// <niter> is the max number of iterations to perform; returns the
 /// number actually performed.
-/// <lambda> is the diagonal augmentation for LM.  
-/// <useCSparse> = 0 for dense Cholesky, 1 for sparse system, 
+/// <lambda> is the diagonal augmentation for LM.
+/// <useCSparse> = 0 for dense Cholesky, 1 for sparse system,
 ///                2 for gradient system, 3 for block jacobian PCG
-/// <initTol> is the initial tolerance for CG 
+/// <initTol> is the initial tolerance for CG
 /// <maxCGiters> is max # of iterations in BPCG
 
 int SysSPA2d::doSPA(int niter, double sLambda, int useCSparse, double initTol,
@@ -436,15 +436,15 @@ int SysSPA2d::doSPA(int niter, double sLambda, int useCSparse, double initTol,
 {
   // number of nodes
   int ncams = nodes.size();
-  
+
   // set number of constraints
   int ncons = p2cons.size();
-  
+
   if(ncams <= 0 || ncons <= 0)
   {
     return 0;
   }
-  
+
   // check for fixed frames
   if (nFixed <= 0)
   {
@@ -456,25 +456,25 @@ int SysSPA2d::doSPA(int niter, double sLambda, int useCSparse, double initTol,
     Node2d &nd = nodes[i];
     if (i >= nFixed)
       nd.isFixed = false;
-    else 
+    else
       nd.isFixed = true;
     nd.setTransform();      // set up world-to-node transform for cost calculation
     nd.setDr();         // always use local angles
   }
-  
+
   // initialize vars
   if (sLambda > 0.0)          // do we initialize lambda?
     lambda = sLambda;
-  
+
   double laminc = 2.0;        // how much to increment lambda if we fail
   double lamdec = 0.5;        // how much to decrement lambda if we succeed
   int iter = 0;               // iterations
   sqMinDelta = 1e-8 * 1e-8;
   double cost = calcCost();
   if (verbose)
-    cout << iter << " Initial squared cost: " << cost << " which is " 
+    cout << iter << " Initial squared cost: " << cost << " which is "
     << sqrt(cost/ncons) << " rms error" << endl;
-  
+
   int good_iter = 0;
   double cumTime = 0;
   for (; iter<niter; iter++)  // loop at most <niter> times
@@ -484,9 +484,9 @@ int SysSPA2d::doSPA(int niter, double sLambda, int useCSparse, double initTol,
       printf(" --- Begin of iteration %d ---\n", iter);
     }
     // set up and solve linear system
-    // NOTE: shouldn't need to redo all calcs in setupSys if we 
+    // NOTE: shouldn't need to redo all calcs in setupSys if we
     //   got here from a bad update
-    
+
     long long t0, t1, t2, t3;
     t0 = utime();
     if (useCSparse)
@@ -499,7 +499,7 @@ int SysSPA2d::doSPA(int niter, double sLambda, int useCSparse, double initTol,
     }
     //        cout << "[SPA] Solving...";
     t1 = utime();
-    
+
     // use appropriate linear solver
     if (useCSparse == SBA_BLOCK_JACOBIAN_PCG)
     {/*
@@ -528,17 +528,17 @@ int SysSPA2d::doSPA(int niter, double sLambda, int useCSparse, double initTol,
           cout << "[DoSBA] Sparse Cholesky failed!" << endl;
       }
     }
-    
-    // Dense direct Cholesky 
+
+    // Dense direct Cholesky
     else
       A.ldlt().solveInPlace(B); // Cholesky decomposition and solution
-      
+
       t2 = utime();
     //        cout << "solved" << endl;
-    
+
     // get correct result vector
     VectorXd &BB = useCSparse ? csp.B : B;
-    
+
     // check for convergence
     // this is a pretty crummy convergence measure...
     double sqDiff = BB.squaredNorm();
@@ -548,7 +548,7 @@ int SysSPA2d::doSPA(int niter, double sLambda, int useCSparse, double initTol,
         cout << "Converged with delta: " << sqrt(sqDiff) << endl;
       break;
     }
-    
+
     // update the frames
     int ci = 0;
     for(int i=0; i < ncams; i++)
@@ -558,20 +558,20 @@ int SysSPA2d::doSPA(int niter, double sLambda, int useCSparse, double initTol,
       nd.oldtrans = nd.trans; // save in case we don't improve the cost
       nd.oldarot = nd.arot;
       nd.trans.head<2>() += BB.segment<2>(ci);
-      
-      nd.arot += BB(ci+2); 
+
+      nd.arot += BB(ci+2);
       nd.normArot();
       nd.setTransform();  // set up projection matrix for cost calculation
       nd.setDr();         // set rotational derivatives
       ci += 3;            // advance B index
     }
-    
+
     // new cost
     double newcost = calcCost();
     if (verbose)
-      cout << iter << " Updated squared cost: " << newcost << " which is " 
+      cout << iter << " Updated squared cost: " << newcost << " which is "
       << sqrt(newcost/ncons) << " rms error" << endl;
-    
+
     // check if we did good
     if (newcost < cost) // && iter != 0) // NOTE: iter==0 case is for checking
     {
@@ -584,7 +584,7 @@ int SysSPA2d::doSPA(int niter, double sLambda, int useCSparse, double initTol,
     {
       lambda *= laminc;   // increase lambda
       laminc *= 2.0;      // increase the increment
-      
+
       // reset nodes
       for(int i=0; i<ncams; i++)
       {
@@ -595,13 +595,13 @@ int SysSPA2d::doSPA(int niter, double sLambda, int useCSparse, double initTol,
         nd.setTransform(); // set up projection matrix for cost calculation
         nd.setDr();
       }
-      
+
       cost = calcCost();  // need to reset errors
       if (verbose)
         cout << iter << " Downdated cost: " << cost << endl;
       // NOTE: shouldn't need to redo all calcs in setupSys
     }
-    
+
     t3 = utime();
     if (iter == 0 && verbose)
     {
@@ -610,7 +610,7 @@ int SysSPA2d::doSPA(int niter, double sLambda, int useCSparse, double initTol,
              0.001*(double)(t2-t1),
              0.001*(double)(t3-t2));
     }
-    
+
     double dt=1e-6*(double)(t3-t0);
     cumTime+=dt;
     if (print_iros_stats){
@@ -621,12 +621,12 @@ int SysSPA2d::doSPA(int niter, double sLambda, int useCSparse, double initTol,
       << "\t kurtChi2= " << cost
       << endl;
     }
-    
+
   }
-  
+
   // return number of iterations performed
   return good_iter;
-  
+
 }
 
 
@@ -634,7 +634,7 @@ int SysSPA2d::doSPA(int niter, double sLambda, int useCSparse, double initTol,
 /// <window> is the number of nodes in the window, the last nodes added
 /// <niter> is the max number of iterations to perform; returns the
 ///    number actually performed.
-/// <lambda> is the diagonal augmentation for LM.  
+/// <lambda> is the diagonal augmentation for LM.
 /// <useCSParse> = 0 for dense Cholesky, 1 for sparse Cholesky, 2 for sparse PCG
 
 static inline int getind(std::map<int,int> &m, int ind)
@@ -652,33 +652,33 @@ int SysSPA2d::doSPAwindowed(int window, int niter, double sLambda, int useCSpars
   // number of nodes
   int nnodes = nodes.size();
   if (nnodes < 2) return 0;
-  
+
   int nlow = nnodes - window;
   if (nlow < 1) nlow = 1;     // always have one fixed node
-  
+
   if (verbose)
     cout << "[SPA Window] From " << nlow << " to " << nnodes << endl;
-  
+
   // number of constraints
   int ncons = p2cons.size();
-  
+
   // set up SPA
   SysSPA2d spa;
   spa.verbose = verbose;
-  
+
   // node, constraint vectors and index mapping
   std::vector<Node2d,Eigen::aligned_allocator<Node2d> > &wnodes = spa.nodes;
   std::vector<Con2dP2,Eigen::aligned_allocator<Con2dP2> > &wp2cons = spa.p2cons;
   std::map<int,int> inds;
   std::vector<int> rinds;     // reverse indices
-  
+
   // loop through all constraints and set up fixed nodes and constraints
   for (int i=0; i<ncons; i++)
   {
     Con2dP2 &con = p2cons[i];
     if (con.ndr >= nlow || con.nd1 >= nlow)
       wp2cons.push_back(con);
-    
+
     if (con.ndr >= nlow && con.nd1 < nlow) // have a winner
     {
       int j = getind(inds,con.nd1); // corresponding index
@@ -700,11 +700,11 @@ int SysSPA2d::doSPAwindowed(int window, int niter, double sLambda, int useCSpars
       rinds.push_back(con.ndr);
     }
   }
-  
+
   spa.nFixed = wnodes.size();
   if (verbose)
     cout << "[SPA Window] Fixed node count: " << spa.nFixed << endl;
-  
+
   // add in variable nodes
   for (int i=0; i<(int)wp2cons.size(); i++)
   {
@@ -727,13 +727,13 @@ int SysSPA2d::doSPAwindowed(int window, int niter, double sLambda, int useCSpars
       }
     }
   }
-  
+
   if (verbose)
   {
     cout << "[SPA Window] Variable node count: " << spa.nodes.size() - spa.nFixed << endl;
     cout << "[SPA Window] Constraint count: " << spa.p2cons.size() << endl;
   }
-  
+
   // new constraint indices
   for (int i=0; i<(int)wp2cons.size(); i++)
   {
@@ -741,10 +741,10 @@ int SysSPA2d::doSPAwindowed(int window, int niter, double sLambda, int useCSpars
     con.ndr = getind(inds,con.ndr);
     con.nd1 = getind(inds,con.nd1);
   }
-  
+
   // run spa
   niter = spa.doSPA(niter,sLambda,useCSparse);
-  
+
   // reset constraint indices
   for (int i=0; i<(int)wp2cons.size(); i++)
   {
@@ -767,35 +767,35 @@ void SysSPA2d::setupSparseDSIF(int newnode)
   // set matrix sizes and clear
   // assumes scales vars are all free
   int nFree = nodes.size() - nFixed;
-  
+
   //    long long t0, t1, t2, t3;
   //    t0 = utime();
-  
+
   // don't erase old stuff here, the delayed filter just grows in size
   csp.setupBlockStructure(nFree,false); // initialize CSparse structures
-  
+
   //    t1 = utime();
-  
+
   // loop over P2 constraints
   for(size_t pi=0; pi<p2cons.size(); pi++)
   {
     Con2dP2 &con = p2cons[pi];
-    
+
     // don't consider old constraints
     if (con.ndr < newnode && con.nd1 < newnode)
       continue;
-    
+
     con.setJacobians(nodes);
-    
+
     // add in 4 blocks of A; actually just need upper triangular
     int i0 = con.ndr-nFixed; // will be negative if fixed
     int i1 = con.nd1-nFixed; // will be negative if fixed
-    
+
     // DSIF will not diverge on standard datasets unless
     //   we reduce the precision of the constraints
     double fact = 1.0;
     if (i0 != i1-1) fact = 0.99; // what should we use????
-    
+
     if (i0>=0)
     {
       Matrix<double,3,3> m = con.J0t*con.prec*con.J0;
@@ -805,7 +805,7 @@ void SysSPA2d::setupSparseDSIF(int newnode)
     {
       Matrix<double,3,3> m = con.J1t*con.prec*con.J1;
       csp.addDiagBlock(m,i1);
-      
+
       if (i0>=0)
       {
         Matrix<double,3,3> m2 = con.J0t*con.prec*con.J1;
@@ -821,27 +821,27 @@ void SysSPA2d::setupSparseDSIF(int newnode)
         }
       }
     }
-    
+
     // add in 2 blocks of B
     if (i0>=0)
       csp.B.block<3,1>(i0*3,0) -= con.J0t * con.prec * con.err;
     if (i1>=0)
       csp.B.block<3,1>(i1*3,0) -= con.J1t * con.prec * con.err;
-    
+
   } // finish P2 constraints
-  
+
   //    t2 = utime();
-  
+
   csp.Bprev = csp.B;          // save for next iteration
-  
+
   // set up sparse matrix structure from blocks
-  csp.setupCSstructure(1.0,true); 
-  
+  csp.setupCSstructure(1.0,true);
+
   //    t3 = utime();
-  
+
   //    printf("\n[SetupSparseSys] Block: %0.1f   Cons: %0.1f  CS: %0.1f\n",
   //           (t1-t0)*.001, (t2-t1)*.001, (t3-t2)*.001);
-  
+
 }
 
 
@@ -851,17 +851,17 @@ void SysSPA2d::doDSIF(int newnode)
 {
   // number of nodes
   int nnodes = nodes.size();
-  
+
   // set number of constraints
   int ncons = p2cons.size();
-  
+
   // check for fixed frames
   if (nFixed <= 0)
   {
     cout << "[doDSIF] No fixed frames" << endl;
     return;
   }
-  
+
   // check for newnode being ok
   if (newnode >= nnodes)
   {
@@ -876,35 +876,35 @@ void SysSPA2d::doDSIF(int newnode)
       nodes[i].oldarot = nodes[i].arot;
     }
   }
-  
+
   for (int i=0; i<nnodes; i++)
   {
     Node2d &nd = nodes[i];
     if (i >= nFixed)
       nd.isFixed = false;
-    else 
+    else
       nd.isFixed = true;
     nd.setTransform();      // set up world-to-node transform for cost calculation
     nd.setDr();             // always use local angles
   }
-  
+
   // initialize vars
   double cost = calcCost();
   if (verbose)
-    cout << " Initial squared cost: " << cost << " which is " 
+    cout << " Initial squared cost: " << cost << " which is "
     << sqrt(cost/ncons) << " rms error" << endl;
-  
+
   // set up and solve linear system
   long long t0, t1, t2, t3;
   t0 = utime();
   setupSparseDSIF(newnode); // set up sparse linear system
-  
+
 #if 0
   cout << "[doDSIF] B = " << csp.B.transpose() << endl;
   csp.uncompress(A);
   cout << "[doDSIF] A = " << endl << A << endl;
 #endif
-  
+
   //        cout << "[SPA] Solving...";
   t1 = utime();
   bool ok = csp.doChol();
@@ -912,12 +912,12 @@ void SysSPA2d::doDSIF(int newnode)
     cout << "[doDSIF] Sparse Cholesky failed!" << endl;
   t2 = utime();
   //        cout << "solved" << endl;
-  
+
   // get correct result vector
   VectorXd &BB = csp.B;
-  
+
   //    cout << "[doDSIF] RES  = " << BB.transpose() << endl;
-  
+
   // update the frames
   int ci = 0;
   for(int i=0; i < nnodes; i++)
@@ -925,19 +925,19 @@ void SysSPA2d::doDSIF(int newnode)
     Node2d &nd = nodes[i];
     if (nd.isFixed) continue; // not to be updated
     nd.trans.head(2) = nd.oldtrans.head(2)+BB.segment<2>(ci);
-    nd.arot = nd.oldarot+BB(ci+2); 
+    nd.arot = nd.oldarot+BB(ci+2);
     nd.normArot();
     nd.setTransform();  // set up projection matrix for cost calculation
     nd.setDr();         // set rotational derivatives
     ci += 3;            // advance B index
   }
-  
+
   // new cost
   double newcost = calcCost();
   if (verbose)
-    cout << " Updated squared cost: " << newcost << " which is " 
+    cout << " Updated squared cost: " << newcost << " which is "
     << sqrt(newcost/ncons) << " rms error" << endl;
-  
+
   t3 = utime();
 }
 
@@ -952,16 +952,16 @@ void SysSPA2d::writeSparseA(char *fname, bool useCSparse)
     cout << "Can't open file " << fname << endl;
     return;
   }
-  
+
   // cameras
   if (useCSparse)
   {
     setupSparseSys(0.0,0);
-    
+
     int *Ai = csp.A->i;
     int *Ap = csp.A->p;
     double *Ax = csp.A->x;
-    
+
     for (int i=0; i<csp.csize; i++)
       for (int j=Ap[i]; j<Ap[i+1]; j++)
         if (Ai[j] <= i)
@@ -970,10 +970,10 @@ void SysSPA2d::writeSparseA(char *fname, bool useCSparse)
   else
   {
     Eigen::IOFormat pfmt(16);
-    
+
     int nrows = A.rows();
     int ncols = A.cols();
-    
+
     for (int i=0; i<nrows; i++)
       for (int j=i; j<ncols; j++)
       {
@@ -982,7 +982,7 @@ void SysSPA2d::writeSparseA(char *fname, bool useCSparse)
           ofs << i << " " << j << setprecision(16) << " " << a << endl;
       }
   }
-  
+
   ofs.close();
 }
 #endif
